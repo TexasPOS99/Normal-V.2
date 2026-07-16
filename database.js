@@ -4,74 +4,34 @@
   const config = window.FIREBASE_CONFIG || {};
   const configured = config.apiKey && !String(config.apiKey).startsWith('ใส่ค่า-');
   let db = null;
-  let currentUser = null;
   let unsubscribe = null;
 
-  function showGate(message, isError) {
-    const gate = document.getElementById('authGate');
-    const text = document.getElementById('authGateMessage');
-    if (!gate) return;
-    gate.classList.remove('hidden');
-    gate.classList.add('flex');
-    if (message && text) {
-      text.textContent = message;
-      text.style.color = isError ? '#dc2626' : '#64748b';
-    }
-  }
-
-  function hideGate() {
-    const gate = document.getElementById('authGate');
-    if (!gate) return;
-    gate.classList.add('hidden');
-    gate.classList.remove('flex');
-  }
-
-  const ready = new Promise((resolve) => {
+  const ready = new Promise((resolve, reject) => {
     document.addEventListener('DOMContentLoaded', () => {
       if (!configured) {
-        showGate('ยังไม่ได้ตั้งค่า Firebase กรุณาใส่ค่าในไฟล์ firebase-config.js', true);
+        alert('ยังไม่ได้ตั้งค่า Firebase ในไฟล์ firebase-config.js');
+        reject(new Error('Firebase is not configured'));
         return;
       }
-
-      firebase.initializeApp(config);
-      db = firebase.firestore();
-      db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
-      const auth = firebase.auth();
-      const button = document.getElementById('googleSignInBtn');
-
-      if (button) {
-        button.onclick = async () => {
-          button.disabled = true;
-          button.textContent = 'กำลังเข้าสู่ระบบ...';
-          try {
-            await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-          } catch (error) {
-            showGate('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, true);
-            button.disabled = false;
-            button.textContent = 'เข้าสู่ระบบด้วย Google';
-          }
-        };
-      }
-
-      auth.onAuthStateChanged((user) => {
-        if (!user) {
-          showGate('ข้อมูลจะถูกเก็บแยกตามบัญชี Google ของคุณ');
-          return;
-        }
-        currentUser = user;
-        hideGate();
+      try {
+        firebase.initializeApp(config);
+        db = firebase.firestore();
+        db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
         resolve();
-      });
+      } catch (error) {
+        alert('เชื่อมต่อ Firebase ไม่สำเร็จ: ' + error.message);
+        reject(error);
+      }
     });
   });
 
   function collection() {
-    if (!db || !currentUser) throw new Error('กรุณาเข้าสู่ระบบก่อน');
+    if (!db) throw new Error('ฐานข้อมูลยังไม่พร้อมใช้งาน');
     return db.collection('links');
   }
 
-  async function ownedRows() {
-    const snap = await collection().where('owner_uid', '==', currentUser.uid).get();
+  async function allRows() {
+    const snap = await collection().get();
     return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
@@ -84,7 +44,7 @@
       this.promise = safe(async () => {
         const data = [];
         for (const row of rows) {
-          const payload = { ...row, owner_uid: currentUser.uid, created_at: row.created_at || new Date().toISOString() };
+          const payload = { ...row, created_at: row.created_at || new Date().toISOString() };
           const ref = await collection().add(payload);
           data.push({ id: ref.id, ...payload });
         }
@@ -102,7 +62,7 @@
         if (field !== 'id') throw new Error('รองรับการค้นหาด้วย id เท่านั้น');
         const ref = collection().doc(String(value));
         const snap = await ref.get();
-        if (!snap.exists || snap.data().owner_uid !== currentUser.uid) throw new Error('ไม่พบข้อมูลหรือไม่มีสิทธิ์');
+        if (!snap.exists) throw new Error('ไม่พบข้อมูล');
         if (this.type === 'delete') await ref.delete();
         else await ref.update(this.values);
         return { data: null, error: null };
@@ -113,7 +73,7 @@
   class SelectQuery {
     order(field, options) {
       return safe(async () => {
-        const rows = await ownedRows();
+        const rows = await allRows();
         rows.sort((a, b) => {
           const result = String(a[field] || '').localeCompare(String(b[field] || ''));
           return options && options.ascending === false ? -result : result;
@@ -139,7 +99,7 @@
         on(event, filter, cb) { callback = cb; return this; },
         subscribe(statusCb) {
           ready.then(() => {
-            unsubscribe = collection().where('owner_uid', '==', currentUser.uid).onSnapshot(
+            unsubscribe = collection().onSnapshot(
               () => callback && callback(),
               error => { console.error(error); statusCb && statusCb('CHANNEL_ERROR'); }
             );
