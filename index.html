@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>All-in-One Tools — Modern Redesign</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="redesign.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="database.js"></script>
+</head>
+<body>
+  <div id="authGate" class="fixed inset-0 z-[999] hidden items-center justify-center p-4" style="background:rgba(15,23,42,.82);backdrop-filter:blur(10px)">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+      <div class="text-5xl mb-4">🔐</div>
+      <h2 class="text-2xl font-heading text-slate-900 mb-2">เข้าสู่ระบบส่วนตัว</h2>
+      <p id="authGateMessage" class="text-sm text-slate-500 mb-6">ข้อมูลจะถูกเก็บแยกตามบัญชี Google ของคุณ</p>
+      <button id="googleSignInBtn" class="btn-base btn-primary w-full">เข้าสู่ระบบด้วย Google</button>
+    </div>
+  </div>
+  <canvas class="matrix-bg" id="matrixCanvas"></canvas>
+  <div id="toast" class="fixed bottom-5 right-5 text-white py-3 px-6 rounded-xl shadow-2xl opacity-0 transform translate-y-10 z-50 transition-all duration-300 font-heading" style="background: linear-gradient(135deg, #2563eb, #0ea5e9);">คัดลอกข้อความแล้ว!</div>
+
+  <!-- Refresh Button -->
+  <button id="refreshBtn" title="รีเฟรชข้อมูล">
+    <span class="refresh-icon">🔄</span>
+  </button>
+
+  <!-- Parcel Modal -->
+  <div id="parcelModal" class="parcel-modal-backdrop">
+    <div class="parcel-modal-content">
+      <div class="parcel-modal-header">
+        <h3>📦 เลขพัสดุ</h3>
+        <button class="parcel-modal-close-btn" id="parcelModalCloseBtn">✕</button>
+      </div>
+
+      <div class="parcel-list-container" id="parcelListContainer">
+        <div class="parcel-item-empty">ยังไม่มีเลขพัสดุ</div>
+      </div>
+
+      <div class="parcel-button-group">
+        <button class="parcel-btn parcel-btn-paste" id="parcelPasteBtn">📥 วางด่วน</button>
+        <div class="parcel-button-row">
+          <button class="parcel-btn parcel-btn-copy" id="parcelCopyAllBtn">📋 คัดลอกทั้งหมด</button>
+          <button class="parcel-btn parcel-btn-clear" id="parcelClearBtn">🗑 ลบทั้งหมด</button>
+        </div>
+        <button class="parcel-btn parcel-btn-close" id="parcelCloseBtn">❌ ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal (Board/Email) -->
+  <div id="confirmModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden modal-backdrop">
+    <div class="modal-content rounded-3xl p-8 max-w-sm w-full mx-4 text-center">
+      <div class="mb-4 text-rose-500 text-6xl">⚠️</div>
+      <h3 class="text-2xl font-heading mb-2" style="color: #0f172a;">ยืนยันการลบ?</h3>
+      <p class="mb-8" style="color: #475569; font-size: 0.9rem;">ข้อมูลนี้จะหายไปถาวรและกู้คืนไม่ได้<br>คุณแน่ใจหรือไม่?</p>
+      <div class="flex gap-3">
+        <button id="modalCancelBtn" class="btn-base btn-secondary">ยกเลิก</button>
+        <button id="modalConfirmBtn" class="btn-base btn-danger">ยืนยันลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Input Modal -->
+  <div id="clearConfirmModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden modal-backdrop">
+    <div class="modal-content rounded-3xl p-8 max-w-sm w-full mx-4 text-center">
+      <div class="mb-4 text-amber-500 text-5xl">🗑️</div>
+      <h3 class="text-xl font-heading mb-2" style="color: #0f172a;">ล้างข้อมูล?</h3>
+      <p class="mb-6" style="color: #475569; font-size: 0.9rem;">ข้อความในช่องจะถูกล้างออกทั้งหมด<br>คุณต้องการดำเนินการต่อหรือไม่?</p>
+      <div class="flex gap-3">
+        <button id="clearCancelBtn" class="btn-base btn-secondary">ยกเลิก</button>
+        <button id="clearConfirmBtn" class="btn-base" style="background-color: #f59e0b; color: white; border: none;">ล้างข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Address Modal -->
+  <div id="deleteAddressModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden modal-backdrop">
+    <div class="modal-content rounded-3xl p-8 max-w-sm w-full mx-4 text-center">
+      <div class="mb-4 text-rose-500 text-5xl">🗑️</div>
+      <h3 class="text-xl font-heading mb-2" style="color: #0f172a;">ลบที่อยู่นี้?</h3>
+      <p id="deleteAddressName" class="font-heading mb-1" style="color: #2563eb; font-size: 1rem;"></p>
+      <p class="mb-6" style="color: #475569; font-size: 0.875rem;">ที่อยู่นี้จะถูกลบออกถาวร</p>
+      <div class="flex gap-3">
+        <button id="deleteAddressCancelBtn" class="btn-base btn-secondary">ยกเลิก</button>
+        <button id="deleteAddressConfirmBtn" class="btn-base btn-danger">ยืนยันลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden modal-backdrop">
+    <div class="modal-content rounded-3xl p-8 max-w-lg w-full mx-4">
+      <h3 class="text-2xl font-heading mb-6 text-center" style="color: #0f172a;">✏️ แก้ไขข้อมูล</h3>
+
+      <div class="space-y-5">
+        <div>
+          <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">หัวข้อ / ชื่อเรียก</label>
+          <input id="editTitleInput" type="text" class="input-premium" placeholder="ระบุชื่อเรียก..." />
+        </div>
+
+        <div id="editMessageContainer" class="space-y-4">
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">ข้อความหลัก</label>
+            <textarea id="editMessageInput" rows="4" class="input-premium" placeholder="พิมพ์ข้อความที่นี่..."></textarea>
+          </div>
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">ลิ้งค์ หรือ โค้ด</label>
+            <textarea id="editExtraMessageInput" rows="2" class="input-premium" placeholder="ใส่ลิ้งค์หรือข้อมูลเพิ่มเติม..."></textarea>
+          </div>
+        </div>
+
+        <div id="editQuickNoteContainer" class="hidden space-y-4">
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">Quick Note</label>
+            <textarea id="editQuickNoteInput" rows="6" class="input-premium" placeholder="ใส่บันทึกด่วนที่นี่..." style="max-height: 400px;"></textarea>
+          </div>
+        </div>
+
+        <div id="editEmailContainer" class="hidden space-y-4">
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">อีเมล / Username</label>
+            <input id="editEmailField" type="text" class="input-premium" />
+          </div>
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">รหัสผ่าน</label>
+            <div class="relative">
+              <input id="editPasswordField" type="text" class="input-premium" />
+              <span class="absolute right-4 top-3 text-xs font-heading" style="color: #94a3b8;">Visible</span>
+            </div>
+          </div>
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">สถานะ</label>
+            <div class="flex gap-6 mt-2">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="radio" name="edit-email-status" value="0" class="w-5 h-5 accent-rose-500">
+                <span class="text-lg">❌</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="radio" name="edit-email-status" value="1" class="w-5 h-5 accent-amber-500">
+                <span class="text-lg">⏱️</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="radio" name="edit-email-status" value="2" class="w-5 h-5 accent-emerald-500">
+                <span class="text-lg">✅</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">ตัวเลือกเพิ่มเติม</label>
+            <div class="flex flex-wrap gap-4 mt-2">
+              <label class="checkbox-icon" id="edit-confirm-label">
+                <input type="checkbox" id="edit-confirm-checkbox" class="hidden">
+                <span>🤝 กดยืนยันสินค้า</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="editAddressContainer" class="hidden space-y-4">
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">ประเภทที่อยู่</label>
+            <div class="flex gap-3 mt-1">
+              <label class="edit-addr-type-label cursor-pointer flex-1 text-center py-2 rounded-xl border border-border font-heading text-sm transition-all">
+                <input type="radio" name="editAddressType" value="personal" class="hidden">
+                <span>🏠 ส่วนตัว</span>
+              </label>
+              <label class="edit-addr-type-label cursor-pointer flex-1 text-center py-2 rounded-xl border border-border font-heading text-sm transition-all">
+                <input type="radio" name="editAddressType" value="customer" class="hidden">
+                <span>👥 ของลูกค้า</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block font-heading mb-2" style="color: #475569; font-size: 0.875rem;">ที่อยู่เต็ม</label>
+            <textarea id="editAddressFull" rows="3" class="input-premium" placeholder="ระบุที่อยู่เต็ม..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 justify-end mt-8">
+        <button id="editCancelBtn" class="btn-base btn-secondary">ยกเลิก</button>
+        <button id="editSaveBtn" class="btn-base btn-primary">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Modal (Redesigned) -->
+  <div id="resultModal" class="fixed inset-0 z-[100] flex items-center justify-center hidden modal-backdrop">
+    <div class="modal-content rounded-3xl max-w-2xl w-full mx-4" style="padding:0; overflow:hidden;">
+      <!-- Header with gradient -->
+      <div style="background: linear-gradient(135deg, #2563eb, #0ea5e9); padding: 24px 28px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3 class="font-heading" style="color:white; font-size:1.35rem; margin:0;">✨ ผลลัพธ์ข้อความพราง</h3>
+          <p style="color:rgba(255,255,255,0.75); font-size:0.8rem; margin:4px 0 0 0; font-family:'Kanit',sans-serif;">เลือกรูปแบบที่ต้องการและกดคัดลอก</p>
+        </div>
+        <button id="closeResultBtn" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">✕</button>
+      </div>
+
+      <!-- Result List -->
+      <div style="padding: 24px 28px;">
+        <div id="resultList" class="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
+          <!-- Results will be here -->
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); display:flex; justify-content:center;">
+          <button class="btn-base btn-secondary" style="width:auto; padding:10px 32px; border-radius:14px; font-size:0.85rem;" onclick="document.getElementById('resultModal').classList.add('hidden')">❌ ปิดหน้าต่าง</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Tab Navigation -->
+  <nav class="tab-container-sticky">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="tab-container w-full">
+        <div class="tab-item active" data-tab="camouflage">🎭 พรางข้อความ</div>
+        <div class="tab-item" data-tab="board">💬 บอร์ด</div>
+        <div class="tab-item" data-tab="email">📧 อีเมล</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto px-4 py-6 md:py-10">
+    <header class="flex flex-col items-start gap-4 mb-8">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 md:w-14 md:h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
+          <span class="text-white text-2xl md:text-3xl">🛠️</span>
+        </div>
+        <div>
+          <h2 class="text-xl md:text-2xl font-heading text-slate-900">All-in-One Tools</h2>
+          <p class="text-hint text-xs md:text-sm">Modern & Fast Productivity Suite</p>
+          <p id="ip-info" class="text-hint text-xs md:text-sm mt-1"></p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Quick Note Section -->
+    <div id="quicknote-container" class="card-premium mb-6 border-l-4" style="border-left-color: var(--accent); padding: 1rem;">
+      <div class="flex justify-between items-start gap-3">
+        <div class="flex-1">
+          <h3 class="font-heading text-base mb-1 flex items-center gap-2">📌 Quick Note</h3>
+          <div id="quickNoteContent" class="text-xs leading-relaxed" style="color: var(--text-main); white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto;">
+            (กรุณารอสักครู่...)
+          </div>
+        </div>
+        <button id="quickNoteEditBtn" class="btn-base btn-primary" style="width: auto; padding: 0.375rem 0.75rem; font-size: 0.8rem; white-space: nowrap; flex-shrink: 0;">✏️ แก้ไข</button>
+      </div>
+    </div>
+
+    <main>
+      <!-- Camouflage Tab -->
+      <section id="camouflage-tab" class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+        <div class="card-premium">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="font-heading text-lg flex items-center gap-2">📝 ข้อมูลต้นฉบับ</h3>
+            <div class="flex gap-2">
+              <button class="btn-base btn-secondary py-2 px-3 text-xs w-auto" id="btnPaste">📋 วาง</button>
+              <button class="btn-base btn-secondary py-2 px-3 text-xs w-auto" id="btnClear">🗑️ ล้าง</button>
+            </div>
+          </div>
+          <textarea id="inputArea" class="textarea-premium mb-4" placeholder="กรอก หรือ วางข้อความที่นี่ (เช่น 82/7 หมู่ 4)..."></textarea>
+
+          <div class="space-y-3 relative">
+            <label class="block text-hint font-heading">📍 ค้นหาที่อยู่ที่บันทึกไว้</label>
+            <div class="relative">
+              <input type="text" id="addressSearchInput" class="input-premium pr-10" placeholder="พิมพ์ชื่อ หรือ ที่อยู่เพื่อค้นหา..." autocomplete="off">
+              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-hint pointer-events-none">🔍</div>
+            </div>
+            <!-- Smart Search Results Dropdown -->
+            <div id="addressSearchResults" class="absolute z-[60] left-0 right-0 mt-1 bg-white rounded-xl border border-border shadow-xl hidden max-h-[300px] overflow-y-auto">
+              <div id="search-group-personal" class="p-2">
+                <div class="text-[10px] font-heading text-hint px-2 py-1 bg-bg-input rounded-lg mb-1">🏠 ส่วนตัว</div>
+                <div id="search-items-personal" class="space-y-1"></div>
+              </div>
+              <div id="search-group-customer" class="p-2 border-t border-border">
+                <div class="text-[10px] font-heading text-hint px-2 py-1 bg-bg-input rounded-lg mb-1">👥 ของลูกค้า</div>
+                <div id="search-items-customer" class="space-y-1"></div>
+              </div>
+              <div id="search-no-results" class="p-4 text-center text-sm text-hint hidden">ไม่พบข้อมูลที่ค้นหา</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible: Add New Address -->
+        <div class="card-premium p-0 overflow-hidden">
+          <div class="collapse-header" id="toggleAddAddress">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">➕</span>
+              <span class="font-heading">เพิ่มที่อยู่ใหม่</span>
+            </div>
+            <span id="collapseIcon" class="transition-transform duration-300">▼</span>
+          </div>
+          <div id="addAddressContent" class="hidden p-5 space-y-4 border-t border-border">
+            <div class="flex gap-2 mb-2">
+              <button class="btn-base btn-secondary py-2 text-xs" id="btnPasteNewAddress">📋 วางจากคลิปบอร์ด</button>
+              <button class="btn-base btn-secondary py-2 text-xs" id="btnClearNewAddress">🗑️ ล้างค่า</button>
+            </div>
+            <div>
+              <label class="block text-hint font-heading mb-2">ชื่อเรียก (เช่น บ้านเนม)</label>
+              <input type="text" id="newAddressName" class="input-premium" placeholder="ระบุชื่อเรียก...">
+            </div>
+            <div>
+              <label class="block text-hint font-heading mb-2">ประเภทที่อยู่</label>
+              <div class="flex gap-3 mt-1" id="addressTypeContainer">
+                <div class="addr-type-label selected" data-value="personal" id="typePersonalLabel">
+                  <input type="radio" name="addressType" value="personal" checked class="hidden" id="typePersonalRadio">
+                  <span>🏠 ส่วนตัว</span>
+                </div>
+                <div class="addr-type-label" data-value="customer" id="typeCustomerLabel">
+                  <input type="radio" name="addressType" value="customer" class="hidden" id="typeCustomerRadio">
+                  <span>👥 ของลูกค้า</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-hint font-heading mb-2">ที่อยู่เต็ม</label>
+              <textarea id="newAddressFull" class="input-premium" style="min-height: 80px;" placeholder="ระบุที่อยู่เต็ม..."></textarea>
+            </div>
+            <button class="btn-base btn-primary" id="btnSaveNewAddress">💾 บันทึกที่อยู่</button>
+
+            <div class="mt-6">
+              <label class="block text-hint font-heading mb-3">🗂️ คลังที่อยู่บันทึกไว้</label>
+              <div id="addressListContainer" class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <!-- Address items will be here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-premium">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="font-heading text-lg flex items-center gap-2">⚡ ตั้งค่าความหนาแน่น</h3>
+            <button class="btn-base btn-secondary" style="width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="randomizeValues()">🎲 สุ่ม</button>
+          </div>
+
+          <div class="space-y-6">
+            <!-- สระ/วรรณยุกต์หลอก -->
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="checkFake" checked class="w-5 h-5 accent-accent">
+                <span class="font-heading">สระ/วรรณยุกต์หลอก</span>
+              </label>
+              <div class="flex items-center gap-1 bg-bg-input p-1 rounded-xl border border-border">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numFake', -1)">-</button>
+                <input type="number" id="numFake" value="4" min="4" max="15" class="w-10 bg-transparent border-none text-center font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none\">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numFake', 1)">+</button>
+              </div>
+            </div>
+
+            <!-- อักขระล่องหน -->
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="checkInvisible" checked class="w-5 h-5 accent-accent">
+                <span class="font-heading">อักขระล่องหน</span>
+              </label>
+              <div class="flex items-center gap-1 bg-bg-input p-1 rounded-xl border border-border">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numInvisible', -1)">-</button>
+                <input type="number" id="numInvisible" value="5" min="5" max="15" class="w-10 bg-transparent border-none text-center font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numInvisible', 1)">+</button>
+              </div>
+            </div>
+
+            <!-- สุ่มเว้นวรรค -->
+            <div class="flex items-center justify-between">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="checkSpace" checked class="w-5 h-5 accent-accent">
+                <span class="font-heading">สุ่มเว้นวรรค</span>
+              </label>
+              <div class="flex items-center gap-1 bg-bg-input p-1 rounded-xl border border-border">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numSpace', -1)">-</button>
+                <input type="number" id="numSpace" value="2" min="2" max="6" class="w-10 bg-transparent border-none text-center font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numSpace', 1)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-base btn-primary mt-8 py-4 text-lg" id="btnGenerate">สร้างข้อความพราง ✨</button>
+        </div>
+      </section>
+
+      <!-- Board Tab -->
+      <section id="board-tab" class="hidden">
+        <div class="text-center mb-8 md:mb-10">
+          <h1 class="text-3xl md:text-4xl font-heading mb-2">💬 บอร์ดข้อความ</h1>
+          <p class="text-hint">พื้นที่สำหรับจดบันทึกและจัดการข้อความสำคัญ</p>
+        </div>
+
+        <div class="card-premium">
+          <div class="space-y-4">
+            <input id="boardTitleInput" type="text" class="input-premium" placeholder="หัวข้อข้อความ..." />
+            <textarea id="boardMessageInput" rows="3" class="input-premium" placeholder="พิมพ์ข้อความที่นี่..."></textarea>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <textarea id="boardExtraInput" rows="2" class="input-premium flex-1" placeholder="ลิ้งค์ หรือ โค้ดเพิ่มเติม (ถ้ามี)..."></textarea>
+              <button id="quickPasteBoardBtn" class="btn-base btn-primary py-3 sm:py-2 text-sm sm:w-auto" style="white-space: nowrap; height: fit-content;">📋 วางด่วน</button>
+            </div>
+            <button id="saveBoardBtn" class="btn-base btn-primary">💾 บันทึกข้อความ</button>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mb-6">
+          <input id="searchBoardInput" type="text" class="input-premium" placeholder="🔍 ค้นหาข้อความ..." />
+        </div>
+
+        <div id="board-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Board messages will be here -->
+        </div>
+      </section>
+
+      <!-- Email Tab -->
+      <section id="email-tab" class="hidden">
+        <div class="text-center mb-8 md:mb-10">
+          <h1 class="text-3xl md:text-4xl font-heading mb-2">📧 จัดการอีเมล</h1>
+          <p class="text-hint">ระบบจัดการบัญชีอีเมลและสถานะการจัดส่ง</p>
+        </div>
+
+        <div class="card-premium" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border: 1px solid rgba(34, 197, 94, 0.3);">
+          <div class="space-y-3">
+            <label class="block text-hint font-heading">🚀 วางด่วน (email|password)</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <textarea id="quickPasteEmailInput" rows="2" class="input-premium flex-1" placeholder="วางข้อมูล เช่น user@email.com|password123..."></textarea>
+              <button id="quickPasteEmailBtn" class="btn-base btn-primary py-3 sm:py-2 text-sm sm:w-auto" style="white-space: nowrap; height: fit-content;">📋 วางด่วน</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-premium">
+          <div id="emailFormTrigger" class="collapsible-trigger">
+            <h3 class="font-heading text-lg flex items-center gap-2">➕ เพิ่มแบบกรอกเอง</h3>
+            <span class="arrow-icon">▼</span>
+          </div>
+          <div id="emailFormContent" class="collapsible-content">
+            <div class="space-y-4">
+              <input id="emailTitleInput" type="text" class="input-premium" placeholder="ชื่อเรียก / หัวข้อ..." />
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input id="emailFieldInput" type="text" class="input-premium" placeholder="อีเมล / Username" />
+                <input id="passwordFieldInput" type="text" class="input-premium" placeholder="รหัสผ่าน" />
+              </div>
+              <button id="saveEmailBtn" class="btn-base btn-primary">💾 บันทึกบัญชี</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-premium">
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <input id="searchEmailInput" type="text" class="input-premium" placeholder="🔍 ค้นหาอีเมล..." />
+
+              <div class="flex items-center gap-2 bg-bg-input px-3 py-2 rounded-xl border border-border focus-within:border-accent transition-all">
+                <span class="text-xs text-hint font-heading whitespace-nowrap">🌙 เดือน:</span>
+                <select id="searchMonthSelect" class="bg-transparent border-none text-sm font-heading outline-none w-full cursor-pointer">
+                  <option value="0">มกราคม</option>
+                  <option value="1">กุมภาพันธ์</option>
+                  <option value="2">มีนาคม</option>
+                  <option value="3">เมษายน</option>
+                  <option value="4">พฤษภาคม</option>
+                  <option value="5">มิถุนายน</option>
+                  <option value="6">กรกฎาคม</option>
+                  <option value="7">สิงหาคม</option>
+                  <option value="8">กันยายน</option>
+                  <option value="9">ตุลาคม</option>
+                  <option value="10">พฤศจิกายน</option>
+                  <option value="11">ธันวาคม</option>
+                </select>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2 bg-bg-input px-3 py-2 rounded-xl border border-border focus-within:border-accent transition-all">
+                  <span class="text-xs text-hint font-heading whitespace-nowrap">📅 วันที่:</span>
+                  <input id="searchDateInput" type="text" placeholder="เช่น 5 หรือ 1-15" class="bg-transparent border-none text-sm font-heading outline-none w-full" />
+                </div>
+                <div class="flex items-center gap-2 bg-bg-input px-3 py-2 rounded-xl border border-border focus-within:border-accent transition-all">
+                  <input type="checkbox" id="filterPendingCheckbox" class="w-4 h-4 accent-accent cursor-pointer">
+                  <label for="filterPendingCheckbox" class="text-xs text-hint font-heading cursor-pointer whitespace-nowrap">📦 มีพัสดุ / ยังไม่ยืนยัน</label>
+                </div>
+                <div class="flex gap-2 items-center">
+                  <span class="text-xs text-hint font-heading">เรียงลำดับ:</span>
+                  <button id="sortOldestBtn" class="btn-base btn-secondary py-1 px-3 text-xs w-auto flex-1">🔼 เก่าไปใหม่</button>
+                  <button id="sortNewestBtn" class="btn-base btn-primary py-1 px-3 text-xs w-auto flex-1">🔽 ใหม่ไปเก่า</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 ml-auto w-full sm:w-auto">
+              <button id="clearFilterBtn" class="btn-base btn-secondary py-2 px-4 text-xs w-full sm:w-auto">ล้างการค้นหา</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="email-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Email cards will be here -->
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-12 md:mt-20 pb-10 text-center">
+      <p class="text-hint font-heading text-xs md:text-sm">Website Design by <span class="text-accent">FB: nickname rittipon</span></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

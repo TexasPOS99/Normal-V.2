@@ -1,0 +1,292 @@
+:root {
+  /* Color System - Professional Blue-Grey & Slate */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  
+  --secondary: #64748b;
+  --secondary-hover: #475569;
+  --secondary-soft: #f1f5f9;
+  
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-soft: #f0f9ff;
+  
+  --success: #10b981;
+  --success-hover: #059669;
+  --success-soft: #ecfdf5;
+  
+  --warning: #f59e0b;
+  --warning-soft: #fffbeb;
+  
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-soft: #fef2f2;
+  
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-hint: #94a3b8;
+  
+  --border: #e2e8f0;
+  --border-focus: #94a3b8;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+/* Base Styles */
+body {
+  font-family: 'Sarabun', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-heading {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 600;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.text-hint {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.text-muted {
+  color: var(--text-hint);
+}
+
+/* Custom utility classes for CSS variables */
+.text-primary {
+  color: var(--primary);
+}
+.text-accent {
+  color: var(--accent);
+}
+.bg-bg-input {
+  background-color: var(--bg-input);
+}
+.border-border {
+  border-color: var(--border);
+}
+.hover\:text-primary:hover {
+  color: var(--primary);
+}
+
+/* Sticky Tab Container (Full Width) */
+.tab-container-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: var(--bg-main);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  padding: 0.75rem 0;
+}
+
+/* Tab System */
+.tab-container {
+  display: flex;
+  background-color: var(--bg-input);
+  padding: 0.5rem;
+  border-radius: var(--radius-xl);
+  gap: 0.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  font-family: 'Kanit', sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-item:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+  color: var(--text-main);
+}
+
+.tab-item.active {
+  background-color: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+/* Desktop Tab Enhancement (≥768px) */
+@media (min-width: 768px) {
+  .tab-container {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+  
+  .tab-item {
+    padding: 1rem 1.75rem;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+}
+
+/* Card System */
+.card-premium {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-2xl);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative; /* Added for absolute positioning of timestamp */
+}
+
+.card-premium:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Button System */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  font-family: 'Kanit', sans-serif;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  width: 100%;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-soft);
+  color: var(--secondary);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: var(--secondary-hover);
+}
+
+.btn-danger {
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+  background-color: var(--danger);
+  color: white;
+}
+
+/* Input System */
+.input-premium, .textarea-premium {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem 1rem;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 0.9375rem;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.input-premium:focus, .textarea-premium:focus {
+  background-color: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+.textarea-premium {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* Collapsible */
+.collapse-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  background-color: var(--bg-card);
+  transition: background-color 0.2s ease;
+}
+
+.collapse-header:hover {
+  background-color: var(--bg-input);
+}
+
+/* Modal Backdrop */
+.modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+/* Mobile Specific Adjustments */
+@media (max-width: 640px) {
+  .card-premium {
+    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+  }
+  
+  .tab-container {
+    padding: 0.375rem;
+    border-radius: var(--radius-lg);
+  }
+  
+  .tab-item {
+    padding: 0.625rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+  
+  h1 {
+    font-size: 1.875rem;
+  }
+}
