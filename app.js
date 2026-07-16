@@ -512,6 +512,7 @@ function renderAddressList(addresses) {
 (function () {
   const fakeChars = ["\u0E31", "\u0E34", "\u0E35", "\u0E36", "\u0E37", "\u0E38", "\u0E39", "\u0E47", "\u0E48", "\u0E49", "\u0E4A", "\u0E4B", "\u0E4C", "\u0E4D", "\u0E4E"];
   const invisibleChars = ["\u200B", "\u200C", "\u200D", "\uFEFF"];
+  const smartVariationHistory = new Set();
 
   function insertFakeChars(text, count) {
     let chars = text.split('');
@@ -546,6 +547,11 @@ function renderAddressList(addresses) {
     return items[Math.floor(Math.random() * items.length)];
   }
 
+  function randomSpaces(min = 1, max = 8) {
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+    return ' '.repeat(count);
+  }
+
   function protectImportantNumbers(text) {
     const protectedValues = [];
     const protectedText = text.replace(/0\d{8,9}|\d+\/\d+|\d{5}/g, (value) => {
@@ -578,27 +584,79 @@ function renderAddressList(addresses) {
     const safe = protectImportantNumbers(inputText.replace(/\s+/g, ' ').trim());
     let text = safe.text;
 
-    text = text.replace(/หมู่บ้าน/g, () => randomItem(['หมู่บ้าน', 'มบ.', 'โครงการ', 'หมู่บ้านโครงการ']));
+    text = text.replace(/หมู่บ้าน/g, () => randomItem([
+      'หมู่บ้าน', 'มบ.', 'โครงการ', 'หมู่บ้านโครงการ', 'โครงการบ้าน', 'ชุมชน', 'ที่พักในหมู่บ้าน'
+    ]));
     text = text.replace(/โทรเบอร์|เบอร์โทร|เบอร์ติดต่อ|โทรศัพท์|โทร\.?/g, () => randomItem([
-      'โทร.', 'ติดต่อ', 'เบอร์ติดต่อ', 'โทรศัพท์', 'ถึงแล้วโทร'
+      'โทร.', 'ติดต่อ', 'เบอร์ติดต่อ', 'โทรศัพท์', 'ถึงแล้วโทร', 'โทรหาผู้รับ', 'ติดต่อผู้รับ',
+      'เบอร์ผู้รับ', 'เบอร์สำหรับติดต่อ', 'หากถึงแล้วโทร', 'รบกวนโทรแจ้ง', 'โทรแจ้งได้ที่'
     ]));
 
-    const prefixes = ['ที่อยู่จัดส่ง', 'จุดรับสินค้า', 'กรุณานำส่งที่', 'สถานที่รับของ', 'ส่งของที่'];
-    const separators = [' : ', ' — ', ' | ', '\n', '  '];
-    const endings = ['', '', ' ขอบคุณครับ', ' กรุณาโทรก่อนถึง', ' ถึงแล้วโทรแจ้ง'];
+    const prefixes = [
+      'ที่อยู่จัดส่ง', 'จุดรับสินค้า', 'กรุณานำส่งที่', 'สถานที่รับของ', 'ส่งของที่',
+      'จุดหมายจัดส่ง', 'นำพัสดุมาส่งที่', 'บ้านผู้รับอยู่ที่', 'สถานที่นำส่ง', 'ปลายทางพัสดุ',
+      'ข้อมูลสำหรับจัดส่ง', 'รบกวนจัดส่งตามที่อยู่นี้', 'จุดส่งของ', 'ที่รับพัสดุ',
+      'กรุณาส่งของมายัง', 'นำส่งปลายทางนี้', 'ตำแหน่งรับสินค้า'
+    ];
+    const connectors = [
+      'บริเวณ', 'อยู่ตรง', 'จุดสังเกตคือ', 'สำหรับการจัดส่ง', 'รายละเอียดผู้รับ',
+      'ใช้ข้อมูลนี้', 'ส่งตามรายละเอียด', 'ปลายทางอยู่ที่', 'ข้อมูลติดต่อ', 'สำหรับติดต่อผู้รับ'
+    ];
+    const endings = [
+      '', '', 'ขอบคุณครับ', 'กรุณาโทรก่อนถึง', 'ถึงแล้วโทรแจ้ง', 'รบกวนติดต่อก่อนส่ง',
+      'โทรแจ้งผู้รับได้เลย', 'หากหาไม่พบกรุณาโทร', 'นำส่งตามรายละเอียดนี้',
+      'กรุณาตรวจสอบบ้านเลขที่', 'ถึงจุดหมายแล้วรบกวนโทร', 'ผู้รับรอรับสินค้าอยู่',
+      'สามารถโทรสอบถามเส้นทางได้', 'กรุณาแจ้งก่อนนำส่ง'
+    ];
 
     if (level === 0 || Math.random() > 0.35) {
-      text = randomItem(prefixes) + randomItem(separators) + text;
+      text = randomItem(prefixes) + randomSpaces(2, 8) + text;
     }
     if (level >= 1) {
-      text = text.replace(/\s+(?=(?:โทร\.|ติดต่อ|เบอร์ติดต่อ|โทรศัพท์|ถึงแล้วโทร))/g, randomItem([' | ', ' — ', '\n']));
+      text = text.replace(
+        /\s+(?=(?:โทร\.|ติดต่อ|เบอร์ติดต่อ|โทรศัพท์|ถึงแล้วโทร|โทรหาผู้รับ|เบอร์ผู้รับ|รบกวนโทรแจ้ง))/g,
+        () => randomSpaces(3, 8)
+      );
     }
-    text += randomItem(endings);
+    if (level >= 2 || Math.random() > 0.65) {
+      const words = text.split(' ');
+      const insertAt = Math.max(1, Math.min(words.length - 1, Math.floor(Math.random() * words.length)));
+      words.splice(insertAt, 0, randomItem(connectors));
+      text = words.join(randomSpaces(1, 5));
+    }
+    const ending = randomItem(endings);
+    if (ending) text += randomSpaces(2, 8) + ending;
     text = addSafeInvisibleBoundaries(text, level + 1);
 
-    const restored = safe.restore(text).replace(/[ \t]{3,}/g, '  ').trim();
+    const restored = safe.restore(text).replace(/[\r\n]+/g, randomSpaces(2, 8)).trim();
     const numbersIntact = safe.values.every(value => restored.includes(value));
     return numbersIntact ? restored : inputText;
+  }
+
+  function smartVariationKey(text) {
+    return text.replace(/[\u200B\u200C\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function generateUniqueSmartVariation(inputText, level, currentResults) {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const candidate = generateSmartVariation(inputText, level);
+      const key = smartVariationKey(candidate);
+      const duplicateInCurrentBatch = currentResults.some(item => smartVariationKey(item) === key);
+      if (!smartVariationHistory.has(key) && !duplicateInCurrentBatch) {
+        smartVariationHistory.add(key);
+        if (smartVariationHistory.size > 300) {
+          const oldest = smartVariationHistory.values().next().value;
+          smartVariationHistory.delete(oldest);
+        }
+        return candidate;
+      }
+    }
+
+    const fallback = generateSmartVariation(inputText, level) + randomSpaces(2, 8) + randomItem([
+      'รายละเอียดชุดใหม่', 'สำหรับรอบนี้', 'ข้อมูลนำส่งล่าสุด', 'ใช้สำหรับการจัดส่งครั้งนี้'
+    ]);
+    smartVariationHistory.add(smartVariationKey(fallback));
+    return fallback;
   }
 
   function generateCamouflage() {
@@ -620,7 +678,7 @@ function renderAddressList(addresses) {
     for (let v = 0; v < 3; v++) {
       let text;
       if (mode === 'smart') {
-        text = generateSmartVariation(inputText, v);
+        text = generateUniqueSmartVariation(inputText, v, results);
       } else {
         text = inputText;
         if (useFake) text = insertFakeChars(text, numFake);
