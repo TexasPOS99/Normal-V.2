@@ -542,6 +542,65 @@ function renderAddressList(addresses) {
     return chars.join('');
   }
 
+  function randomItem(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  function protectImportantNumbers(text) {
+    const protectedValues = [];
+    const protectedText = text.replace(/0\d{8,9}|\d+\/\d+|\d{5}/g, (value) => {
+      const token = `__SAFE_${protectedValues.length}__`;
+      protectedValues.push(value);
+      return token;
+    });
+    return {
+      text: protectedText,
+      values: protectedValues,
+      restore(value) {
+        return value.replace(/__SAFE_(\d+)__/g, (_, index) => protectedValues[Number(index)] || '');
+      }
+    };
+  }
+
+  function addSafeInvisibleBoundaries(text, count) {
+    const boundaries = [];
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === ' ' && !text.slice(Math.max(0, i - 12), i + 12).includes('__SAFE_')) boundaries.push(i);
+    }
+    let result = text;
+    boundaries.sort(() => Math.random() - 0.5).slice(0, count).sort((a, b) => b - a).forEach(pos => {
+      result = result.slice(0, pos) + randomItem(invisibleChars) + result.slice(pos);
+    });
+    return result;
+  }
+
+  function generateSmartVariation(inputText, level) {
+    const safe = protectImportantNumbers(inputText.replace(/\s+/g, ' ').trim());
+    let text = safe.text;
+
+    text = text.replace(/หมู่บ้าน/g, () => randomItem(['หมู่บ้าน', 'มบ.', 'โครงการ', 'หมู่บ้านโครงการ']));
+    text = text.replace(/โทรเบอร์|เบอร์โทร|เบอร์ติดต่อ|โทรศัพท์|โทร\.?/g, () => randomItem([
+      'โทร.', 'ติดต่อ', 'เบอร์ติดต่อ', 'โทรศัพท์', 'ถึงแล้วโทร'
+    ]));
+
+    const prefixes = ['ที่อยู่จัดส่ง', 'จุดรับสินค้า', 'กรุณานำส่งที่', 'สถานที่รับของ', 'ส่งของที่'];
+    const separators = [' : ', ' — ', ' | ', '\n', '  '];
+    const endings = ['', '', ' ขอบคุณครับ', ' กรุณาโทรก่อนถึง', ' ถึงแล้วโทรแจ้ง'];
+
+    if (level === 0 || Math.random() > 0.35) {
+      text = randomItem(prefixes) + randomItem(separators) + text;
+    }
+    if (level >= 1) {
+      text = text.replace(/\s+(?=(?:โทร\.|ติดต่อ|เบอร์ติดต่อ|โทรศัพท์|ถึงแล้วโทร))/g, randomItem([' | ', ' — ', '\n']));
+    }
+    text += randomItem(endings);
+    text = addSafeInvisibleBoundaries(text, level + 1);
+
+    const restored = safe.restore(text).replace(/[ \t]{3,}/g, '  ').trim();
+    const numbersIntact = safe.values.every(value => restored.includes(value));
+    return numbersIntact ? restored : inputText;
+  }
+
   function generateCamouflage() {
     const inputText = document.getElementById('inputArea').value.trim();
     if (!inputText) {
@@ -549,6 +608,7 @@ function renderAddressList(addresses) {
       return;
     }
 
+    const mode = document.getElementById('camouflageMode')?.value || 'legacy';
     const useFake = document.getElementById('checkFake').checked;
     const useInvisible = document.getElementById('checkInvisible').checked;
     const useSpace = document.getElementById('checkSpace').checked;
@@ -558,10 +618,15 @@ function renderAddressList(addresses) {
 
     const results = [];
     for (let v = 0; v < 3; v++) {
-      let text = inputText;
-      if (useFake) text = insertFakeChars(text, numFake);
-      if (useInvisible) text = insertInvisibleChars(text, numInvisible);
-      if (useSpace) text = insertExtraSpaces(text, numSpace);
+      let text;
+      if (mode === 'smart') {
+        text = generateSmartVariation(inputText, v);
+      } else {
+        text = inputText;
+        if (useFake) text = insertFakeChars(text, numFake);
+        if (useInvisible) text = insertInvisibleChars(text, numInvisible);
+        if (useSpace) text = insertExtraSpaces(text, numSpace);
+      }
       results.push(text);
     }
 
@@ -622,6 +687,17 @@ function renderAddressList(addresses) {
   }
 
   document.getElementById('btnGenerate').addEventListener('click', generateCamouflage);
+  const camouflageMode = document.getElementById('camouflageMode');
+  if (camouflageMode) {
+    camouflageMode.addEventListener('change', () => {
+      const smart = camouflageMode.value === 'smart';
+      document.getElementById('legacyCamouflageSettings').classList.toggle('hidden', smart);
+      document.getElementById('smartCamouflageSettings').classList.toggle('hidden', !smart);
+      document.getElementById('modeDescription').textContent = smart
+        ? 'สุ่มคำและรูปแบบประโยค โดยรักษาบ้านเลขที่และเบอร์โทร'
+        : 'ใช้การตั้งค่าความหนาแน่นแบบเดิมทั้งหมด';
+    });
+  }
   document.getElementById('closeResultBtn').addEventListener('click', () => {
     document.getElementById('resultModal').classList.add('hidden');
   });

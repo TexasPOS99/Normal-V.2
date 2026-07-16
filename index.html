@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <script src="database.js?v=3"></script>
+  <script src="database.js?v=4"></script>
 </head>
 <body>
   <canvas class="matrix-bg" id="matrixCanvas"></canvas>
@@ -335,7 +335,16 @@
             <button class="btn-base btn-secondary" style="width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="randomizeValues()">🎲 สุ่ม</button>
           </div>
 
-          <div class="space-y-6">
+          <div class="mb-6">
+            <label class="block text-hint font-heading mb-2">เลือกระบบสุ่ม</label>
+            <select id="camouflageMode" class="input-premium">
+              <option value="legacy">🎭 ระบบเดิม — สุ่มอักขระทุกตำแหน่ง</option>
+              <option value="smart">✨ ระบบใหม่ — เพิ่มคำ อ่านง่าย และล็อกตัวเลข</option>
+            </select>
+            <p id="modeDescription" class="text-xs text-hint mt-2">ใช้การตั้งค่าความหนาแน่นแบบเดิมทั้งหมด</p>
+          </div>
+
+          <div id="legacyCamouflageSettings" class="space-y-6">
             <!-- สระ/วรรณยุกต์หลอก -->
             <div class="flex items-center justify-between">
               <label class="flex items-center gap-3 cursor-pointer">
@@ -374,6 +383,15 @@
                 <button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors text-primary font-bold" onclick="adjustValue('numSpace', 1)">+</button>
               </div>
             </div>
+          </div>
+
+          <div id="smartCamouflageSettings" class="hidden rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <p class="font-heading text-sm text-blue-800 mb-2">ระบบใหม่จะสุ่มให้ 3 แนวทาง</p>
+            <ul class="text-xs text-blue-700 space-y-1">
+              <li>• เพิ่มคำบอกจุดจัดส่งและคำติดต่อแบบสุ่ม</li>
+              <li>• สลับคำเต็ม คำย่อ เครื่องหมาย และการขึ้นบรรทัด</li>
+              <li>• ล็อกบ้านเลขที่และเบอร์โทรให้ตัวเลขครบเหมือนต้นฉบับ</li>
+            </ul>
           </div>
 
           <button class="btn-base btn-primary mt-8 py-4 text-lg" id="btnGenerate">สร้างข้อความพราง ✨</button>
@@ -499,6 +517,6 @@
     </footer>
   </div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
